@@ -5,10 +5,10 @@ import asyncio
 class MqttBase:
     __slots__ = ['mqtt_client', 'event_loop']
 
-    def __init__(self, host: str):
+    def __init__(self, host: str, port: int = None):
         self.event_loop = asyncio.get_running_loop()
         self.mqtt_client = mqtt.Client()
-        self.mqtt_client.connect(host)
+        self.mqtt_client.connect(host, port)
 
     def loop(self):
         while self.event_loop.is_running():
