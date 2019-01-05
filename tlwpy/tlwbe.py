@@ -8,8 +8,19 @@ import base64
 import logging
 from tlwpy.mqttbase import MqttBase
 
+TOPIC_DEV_ADD = 'tlwbe/control/dev/add'
 TOPIC_DEV_GET = 'tlwbe/control/dev/get'
+TOPIC_DEV_UPDATE = 'tlwbe/control/dev/update'
+TOPIC_DEV_DELETE = 'tlwbe/control/dev/delete'
+TOPIC_DEV_LIST = 'tlwbe/control/dev/list'
+
+TOPIC_APP_ADD = 'tlwbe/control/app/add'
 TOPIC_APP_GET = 'tlwbe/control/app/get'
+TOPIC_APP_UPDATE = 'tlwbe/control/app/update'
+TOPIC_APP_DELETE = 'tlwbe/control/app/delete'
+TOPIC_APP_LIST = 'tlwbe/control/app/list'
+
+TOPIC_CONTROL_RESULT = 'tlwbe/control/result/#'
 
 
 class Join:
@@ -90,7 +101,7 @@ class Tlwbe(MqttBase):
 
         self.mqtt_client.message_callback_add('tlwbe/join/+/+', self.__on_join)
         self.mqtt_client.message_callback_add('tlwbe/uplink/#', self.__on_uplink)
-        self.mqtt_client.message_callback_add('tlwbe/control/result/#', self.__on_control_result)
+        self.mqtt_client.message_callback_add(TOPIC_CONTROL_RESULT, self.__on_control_result)
         self.mqtt_client.message_callback_add('tlwbe/downlink/result/#', self.__on_downlink_result)
         self.mqtt_client.on_message = self.__on_msg
         self.mqtt_client.on_subscribe = self._on_sub
@@ -117,6 +128,11 @@ class Tlwbe(MqttBase):
         self.__logger.debug('subscribing to %s' % topic)
         self.mqtt_client.subscribe(topic)
 
+    async def add_dev(self, name: str, eui: str):
+        payload = {'name': name, 'eui': eui}
+        result = self.__publish_and_wait_for_control_result(TOPIC_DEV_ADD, payload)
+        return result
+
     async def get_dev_by_name(self, name: str):
         payload = {'name': name}
         result = await self.__publish_and_wait_for_control_result(TOPIC_DEV_GET, payload)
@@ -127,14 +143,51 @@ class Tlwbe(MqttBase):
         result = await self.__publish_and_wait_for_control_result(TOPIC_DEV_GET, payload)
         return result
 
+    async def update_dev(self, name: str, eui: str):
+        payload = {'name': name, 'eui': eui}
+        result = await self.__publish_and_wait_for_control_result(TOPIC_DEV_UPDATE, payload)
+        return result
+
+    async def delete_dev(self, eui: str):
+        payload = {'eui': eui}
+        result = await self.__publish_and_wait_for_control_result(TOPIC_DEV_DELETE, payload)
+        return result
+
+    async def list_devs(self):
+        payload = {}
+        result = await self.__publish_and_wait_for_control_result(TOPIC_DEV_LIST, payload)
+        return result
+
+    async def add_app(self, name: str, eui: str = None):
+        payload = {'name': name}
+        if eui is not None:
+            payload['eui'] = eui
+        result = await self.__publish_and_wait_for_control_result(TOPIC_APP_ADD, payload)
+        return result
+
     async def get_app_by_name(self, name: str):
         payload = {'name': name}
         result = await self.__publish_and_wait_for_control_result(TOPIC_APP_GET, payload)
         return result
 
-    def get_app_by_eui(self, eui: str):
+    async def get_app_by_eui(self, eui: str):
         payload = {'eui': eui}
-        result = self.__publish_and_wait_for_control_result(TOPIC_APP_GET, payload)
+        result = await self.__publish_and_wait_for_control_result(TOPIC_APP_GET, payload)
+        return result
+
+    async def update_app(self, name: str, eui: str):
+        payload = {'name': name, 'eui': eui}
+        result = await self.__publish_and_wait_for_control_result(TOPIC_APP_UPDATE, payload)
+        return result
+
+    async def delete_app(self, eui: str):
+        payload = {'eui': eui}
+        result = await self.__publish_and_wait_for_control_result(TOPIC_APP_DELETE, payload)
+        return result
+
+    async def list_apps(self):
+        payload = {}
+        result = await self.__publish_and_wait_for_control_result(TOPIC_APP_LIST, payload)
         return result
 
     def listen_for_joins(self, appeui: str, deveui: str):

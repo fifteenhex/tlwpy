@@ -6,9 +6,14 @@ class MqttBase:
     __slots__ = ['mqtt_client', 'event_loop']
 
     def __init__(self, host: str, port: int = None):
+        if port is None:
+            port = 1883
+
         self.event_loop = asyncio.get_running_loop()
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.connect(host, port)
+
+        asyncio.get_running_loop().run_in_executor(None, self.loop)
 
     def loop(self):
         while self.event_loop.is_running():
