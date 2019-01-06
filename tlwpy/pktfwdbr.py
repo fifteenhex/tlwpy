@@ -37,16 +37,14 @@ class PacketForwarder(MqttBase):
             self.downlinks.put_nowait(downlink)
 
     def __init__(self, host: str):
-        super().__init__(host)
-        self.uplinks = asyncio.Queue()
-        self.downlinks = asyncio.Queue()
         rx_topic = 'pktfwdbr/+/rx/#'
         tx_topic = 'pktfwdbr/+/tx/#'
+        super().__init__(host, topics=[rx_topic, tx_topic])
+        self.uplinks = asyncio.Queue()
+        self.downlinks = asyncio.Queue()
         self.__logger = logging.getLogger('pktfwdbr')
         self.mqtt_client.message_callback_add(rx_topic, self.__on_rx)
-        self.mqtt_client.subscribe(rx_topic)
         self.mqtt_client.message_callback_add(tx_topic, self.__on_tx)
-        self.mqtt_client.subscribe(tx_topic)
 
     def reset(self):
         pass
