@@ -61,9 +61,6 @@ class Tlwbe(MqttBase):
     def __dump_message(self, msg):
         self.__logger.debug('publish on %s' % msg.topic)
 
-    def _on_sub(self, client, userdata, mid, granted_qos):
-        self.__logger.debug("subbed")
-
     def __on_msg(self, client, userdata, msg):
         self.__dump_message(msg)
         self.__logger.warning('rogue publish')
@@ -93,7 +90,7 @@ class Tlwbe(MqttBase):
         self.__on_result(msg, self.__downlink_results)
 
     def __init__(self, host: str, port: int = None):
-        super().__init__(host, port=port)
+        super().__init__(host, port=port, topics=['tlwbe/control/result/#', 'tlwbe/downlink/result/#'])
         self.queue_joins = Queue()
         self.queue_uplinks = Queue()
         self.__control_results = {}
@@ -104,9 +101,6 @@ class Tlwbe(MqttBase):
         self.mqtt_client.message_callback_add(TOPIC_CONTROL_RESULT, self.__on_control_result)
         self.mqtt_client.message_callback_add('tlwbe/downlink/result/#', self.__on_downlink_result)
         self.mqtt_client.on_message = self.__on_msg
-        self.mqtt_client.on_subscribe = self._on_sub
-        self.mqtt_client.subscribe('tlwbe/control/result/#')
-        self.mqtt_client.subscribe('tlwbe/downlink/result/#')
 
         self.__logger = logging.getLogger('tlwbe')
 
@@ -114,8 +108,9 @@ class Tlwbe(MqttBase):
         token = str(uuid4())
         future = asyncio.get_running_loop().create_future()
         results[token] = future
+        await self.wait_for_connection()
         msginfo = self.mqtt_client.publish("%s/%s" % (topic, token), json.dumps(payload))
-        assert msginfo.rc == mqtt.MQTT_ERR_SUCCESS
+        assert msginfo.rc == mqtt.MQTT_ERR_SUCCESS, 'rc was %d' % msginfo.rc
         result = await asyncio.wait_for(future, 10)
         return result
 
