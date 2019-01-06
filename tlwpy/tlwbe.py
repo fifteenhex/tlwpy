@@ -114,7 +114,8 @@ class Tlwbe(MqttBase):
         token = str(uuid4())
         future = asyncio.get_running_loop().create_future()
         results[token] = future
-        self.mqtt_client.publish("%s/%s" % (topic, token), json.dumps(payload))
+        msginfo = self.mqtt_client.publish("%s/%s" % (topic, token), json.dumps(payload))
+        assert msginfo.rc == mqtt.MQTT_ERR_SUCCESS
         result = await asyncio.wait_for(future, 10)
         return result
 

@@ -13,7 +13,7 @@ class MqttBase:
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.connect(host, port)
 
-        asyncio.get_running_loop().run_in_executor(None, self.loop)
+        self.event_loop.run_in_executor(None, self.loop)
 
     def loop(self):
         while self.event_loop.is_running():
