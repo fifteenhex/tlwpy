@@ -54,11 +54,12 @@ class Uplink:
 
 
 class Result:
-    __slots__ = ['token', 'result']
+    __slots__ = ['token', 'result', 'code']
 
     def __init__(self, msg: mqtt.MQTTMessage):
         self.token = msg.topic.split("/")[-1]
         self.result = json.loads(msg.payload.decode('utf-8'))
+        self.code = self.result['code']
 
 
 class Tlwbe(MqttBase):
@@ -130,9 +131,14 @@ class Tlwbe(MqttBase):
         self.__logger.debug('subscribing to %s' % topic)
         self.mqtt_client.subscribe(topic)
 
-    async def add_dev(self, name: str, eui: str):
-        payload = {'name': name, 'eui': eui}
-        result = self.__publish_and_wait_for_control_result(TOPIC_DEV_ADD, payload)
+    async def add_dev(self, name: str, app_eui: str, eui: str = None, key: str = None):
+        assert name is not None and app_eui is not None
+        payload = {'name': name, 'appeui': app_eui}
+        if eui is not None:
+            payload['eui'] = eui
+        if key is not None:
+            payload['key'] = key
+        result = await self.__publish_and_wait_for_control_result(TOPIC_DEV_ADD, payload)
         return result
 
     async def get_dev_by_name(self, name: str):

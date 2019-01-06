@@ -6,15 +6,15 @@ class MqttBase:
     __slots__ = ['mqtt_client', 'event_loop', '__host', '__port', '__topics', '__connected', '__on_connected_futures']
 
     def __on_connect(self, client, userdata, flags, rc):
+        self.__connected = True
         for topic in self.__topics:
             self.mqtt_client.subscribe(topic)
 
-        self.__connected = True
         for future in self.__on_connected_futures:
             self.__on_connected_futures.remove(future)
             self.event_loop.call_soon_threadsafe(future.set_result, True)
 
-    def _on_sub(self, client, userdata, mid, granted_qos):
+    def __on_sub(self, client, userdata, mid, granted_qos):
         self.__logger.debug("subbed")
 
     def __on_disconnect(self, client, userdata, rc):
@@ -35,7 +35,7 @@ class MqttBase:
         # create and configure the mqtt client
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.on_connect = self.__on_connect
-        self.mqtt_client.on_subscribe = self._on_sub
+        self.mqtt_client.on_subscribe = self.__on_sub
         self.mqtt_client.on_disconnect = self.__on_disconnect
 
         # get the event loop and start running the mqtt loop
@@ -44,10 +44,14 @@ class MqttBase:
 
     def __loop(self):
         self.mqtt_client.connect(self.__host, self.__port)
+        self.mqtt_client.loop(10)
         while self.event_loop.is_running():
             self.mqtt_client.loop(10)
-            if not self.__connected:
-                self.mqtt_client.reconnect()
+            #if not self.__connected:
+            #    try:
+            #        self.mqtt_client.reconnect()
+            #    except ConnectionRefusedError:
+            #        pass
         self.mqtt_client.disconnect()
 
     async def wait_for_connection(self):
