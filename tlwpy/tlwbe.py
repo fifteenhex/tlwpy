@@ -8,17 +8,23 @@ import base64
 import logging
 from tlwpy.mqttbase import MqttBase
 
-TOPIC_DEV_ADD = 'tlwbe/control/dev/add'
-TOPIC_DEV_GET = 'tlwbe/control/dev/get'
-TOPIC_DEV_UPDATE = 'tlwbe/control/dev/update'
-TOPIC_DEV_DELETE = 'tlwbe/control/dev/delete'
-TOPIC_DEV_LIST = 'tlwbe/control/dev/list'
+ACTION_ADD = 'add'
+ACTION_GET = 'get'
+ACTION_UPDATE = 'update'
+ACTION_DELETE = 'del'
+ACTION_LIST = 'list'
 
-TOPIC_APP_ADD = 'tlwbe/control/app/add'
-TOPIC_APP_GET = 'tlwbe/control/app/get'
-TOPIC_APP_UPDATE = 'tlwbe/control/app/update'
-TOPIC_APP_DELETE = 'tlwbe/control/app/delete'
-TOPIC_APP_LIST = 'tlwbe/control/app/list'
+TOPIC_DEV_ADD = 'tlwbe/control/dev/%s' % ACTION_ADD
+TOPIC_DEV_GET = 'tlwbe/control/dev/%s' % ACTION_GET
+TOPIC_DEV_UPDATE = 'tlwbe/control/dev/%s' % ACTION_UPDATE
+TOPIC_DEV_DELETE = 'tlwbe/control/dev/%s' % ACTION_DELETE
+TOPIC_DEV_LIST = 'tlwbe/control/dev/%s' % ACTION_LIST
+
+TOPIC_APP_ADD = 'tlwbe/control/app/%s' % ACTION_ADD
+TOPIC_APP_GET = 'tlwbe/control/app/%s' % ACTION_GET
+TOPIC_APP_UPDATE = 'tlwbe/control/app/%s' % ACTION_UPDATE
+TOPIC_APP_DELETE = 'tlwbe/control/app/%s' % ACTION_DELETE
+TOPIC_APP_LIST = 'tlwbe/control/app/%s' % ACTION_LIST
 
 TOPIC_CONTROL_RESULT = 'tlwbe/control/result/#'
 
@@ -48,11 +54,11 @@ class Uplink:
 
 
 class Result:
-    __slots__ = ['token', 'payload']
+    __slots__ = ['token', 'result']
 
     def __init__(self, msg: mqtt.MQTTMessage):
         self.token = msg.topic.split("/")[-1]
-        self.payload = msg.payload
+        self.result = json.loads(msg.payload.decode('utf-8'))
 
 
 class Tlwbe(MqttBase):
