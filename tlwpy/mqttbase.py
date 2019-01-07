@@ -1,5 +1,6 @@
 import paho.mqtt.client as mqtt
 import asyncio
+import time
 
 
 class MqttBase:
@@ -20,7 +21,7 @@ class MqttBase:
     def __on_disconnect(self, client, userdata, rc):
         self.__connected = False
 
-    def __init__(self, host: str = "localhost", port: int = None, topics: [] = []):
+    def __init__(self, host: str = "localhost", port: int = None, id: str = None, topics: [] = []):
         # stash the mqtt parameters
         if port is None:
             port = 1883
@@ -33,7 +34,7 @@ class MqttBase:
         self.__on_connected_futures = []
 
         # create and configure the mqtt client
-        self.mqtt_client = mqtt.Client()
+        self.mqtt_client = mqtt.Client(client_id=id)
         self.mqtt_client.on_connect = self.__on_connect
         self.mqtt_client.on_subscribe = self.__on_sub
         self.mqtt_client.on_disconnect = self.__on_disconnect
@@ -44,20 +45,15 @@ class MqttBase:
 
     def __loop(self):
         self.mqtt_client.connect(self.__host, self.__port)
-        self.mqtt_client.loop(10)
         while self.event_loop.is_running():
-            self.mqtt_client.loop(10)
-            #if not self.__connected:
-            #    try:
-            #        self.mqtt_client.reconnect()
-            #    except ConnectionRefusedError:
-            #        pass
+            if self.mqtt_client.loop(1) != mqtt.MQTT_ERR_SUCCESS:
+                self.mqtt_client.reconnect()
         self.mqtt_client.disconnect()
 
     async def wait_for_connection(self):
         future = asyncio.get_running_loop().create_future()
         if self.__connected:
-            self.event_loop.call_soon_threadsafe(future.set_result, True)
+            return True
         else:
             self.__on_connected_futures.append(future)
         return await asyncio.wait_for(future, 10)

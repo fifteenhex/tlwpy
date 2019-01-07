@@ -97,7 +97,7 @@ class Tlwbe(MqttBase):
         self.__on_result(msg, self.__downlink_results)
 
     def __init__(self, host: str, port: int = None):
-        super().__init__(host, port=port, topics=['tlwbe/control/result/#', 'tlwbe/downlink/result/#'])
+        super().__init__(host, port=port, id='twlbe', topics=['tlwbe/control/result/#', 'tlwbe/downlink/result/#'])
         self.queue_joins = Queue()
         self.queue_uplinks = Queue()
         self.__control_results = {}
