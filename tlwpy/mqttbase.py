@@ -2,10 +2,13 @@ import paho.mqtt.client as mqtt
 import asyncio
 import time
 import concurrent.futures
+import logging
 
 
 class MqttBase:
-    __slots__ = ['mqtt_client', 'event_loop', '__host', '__port', '__topics', '__connected']
+    __slots__ = ['mqtt_client', 'event_loop',
+                 '__host', '__port', '__topics', '__connected',
+                 '__logger']
 
     def __on_connect(self, client, userdata, flags, rc):
         for topic in self.__topics:
@@ -19,6 +22,8 @@ class MqttBase:
         self.event_loop.call_soon_threadsafe(self.__connected.clear())
 
     def __init__(self, host: str = "localhost", port: int = None, id: str = None, topics: [] = []):
+        self.__logger = logging.getLogger('mqttbase')
+
         # stash the mqtt parameters
         if port is None:
             port = 1883
