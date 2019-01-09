@@ -51,9 +51,9 @@ class MqttBase:
         self.mqtt_client.disconnect()
 
     async def wait_for_connection(self):
-        future = asyncio.get_running_loop().create_future()
         if self.__connected:
             return True
         else:
+            future = asyncio.get_running_loop().create_future()
             self.__on_connected_futures.append(future)
-        return await asyncio.wait_for(future, 10)
+            return await asyncio.wait_for(future, 10)
