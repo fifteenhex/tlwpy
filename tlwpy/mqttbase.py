@@ -42,7 +42,9 @@ class MqttBase:
     def __loop(self):
         self.mqtt_client.connect(self.__host, self.__port)
         while self.event_loop.is_running():
-            if self.mqtt_client.loop(1) != mqtt.MQTT_ERR_SUCCESS:
+            rc = self.mqtt_client.loop(1)
+            if rc != mqtt.MQTT_ERR_SUCCESS:
+                self.__logger.warn('might have gotten disconnected, %d' % rc)
                 self.mqtt_client.reconnect()
         self.mqtt_client.disconnect()
 
