@@ -29,8 +29,17 @@ class Gateway(MqttBase):
         data = tlwpy.liblorawan.builder_joinreq(bytes.fromhex(dev_key), bytes.fromhex(app_eui), bytes.fromhex(dev_eui),
                                                 b'00')
 
-        payload = {"tmst": 3889331076, "chan": 1, "rfch": 0, "freq": 923.39999999999998, "stat": 1, "modu": "LORA",
-                   "datr": "SF10BW125", "codr": "4/5", "lsnr": 12.0, "rssi": -48, "size": 23,
+        payload = {"tmst": 3889331076,
+                   "chan": 1,
+                   "rfch": 0,
+                   "freq": 923.39999999999998,
+                   "stat": 1,
+                   "modu": "LORA",
+                   "datr": "SF10BW125",
+                   "codr": "4/5",
+                   "lsnr": 12.0,
+                   "rssi": -48,
+                   "size": 23,
                    "data": base64.b64encode(data).decode('ascii')}
 
         await self.send_pktfwdbr_publish(topic, payload)

@@ -8,7 +8,7 @@ from tlwpy.mqttbase import MqttBase
 
 
 class PacketForwarder(MqttBase):
-    __slots__ = ['uplinks', 'downlinks', '__logger', '__mqtt_client']
+    __slots__ = ['joinacks', 'uplinks', 'downlinks', '__logger', '__mqtt_client']
 
     def __on_rx(self, client, userdata, msg: mqtt.MQTTMessage):
         payload_json = json.loads(msg.payload)
@@ -30,16 +30,18 @@ class PacketForwarder(MqttBase):
         if pkt_type == lorawan.MHDR_MTYPE_JOINACK:
             join_ack = lorawan.JoinAccept(pkt_data)
             self.__logger.debug('saw joinack')
+            self.joinacks.put_nowait(join_ack)
         elif pkt_type == lorawan.MHDR_MTYPE_CNFDN or pkt_type == lorawan.MHDR_MTYPE_UNCNFDN:
             downlink = lorawan.Downlink(pkt_data)
             self.__logger.debug('saw downlink for %x, framecounter %d, port %d' % (
                 downlink.devaddr, downlink.framecounter, downlink.port))
             self.downlinks.put_nowait(downlink)
 
-    def __init__(self, host: str):
+    def __init__(self, host: str, port: int = None):
         rx_topic = 'pktfwdbr/+/rx/#'
         tx_topic = 'pktfwdbr/+/tx/#'
-        super().__init__(host, topics=[rx_topic, tx_topic])
+        super().__init__(host, port=port, topics=[rx_topic, tx_topic])
+        self.joinacks = asyncio.Queue()
         self.uplinks = asyncio.Queue()
         self.downlinks = asyncio.Queue()
         self.__logger = logging.getLogger('pktfwdbr')
