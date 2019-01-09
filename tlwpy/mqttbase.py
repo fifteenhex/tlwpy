@@ -1,6 +1,7 @@
 import paho.mqtt.client as mqtt
 import asyncio
 import time
+import concurrent.futures
 
 
 class MqttBase:
@@ -56,4 +57,7 @@ class MqttBase:
         else:
             future = asyncio.get_running_loop().create_future()
             self.__on_connected_futures.append(future)
-            return await asyncio.wait_for(future, 10)
+            try:
+                await asyncio.wait_for(future, 10)
+            except concurrent.futures.TimeoutError:
+                return self.__connected
