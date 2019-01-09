@@ -50,7 +50,10 @@ class MqttBase:
             rc = self.mqtt_client.loop(1)
             if rc != mqtt.MQTT_ERR_SUCCESS:
                 self.__logger.warn('might have gotten disconnected, %d' % rc)
-                self.mqtt_client.reconnect()
+                try:
+                    self.mqtt_client.reconnect()
+                except ConnectionRefusedError:
+                    self.__logger.warn('connection was refused')
         self.mqtt_client.disconnect()
 
     async def wait_for_connection(self):
