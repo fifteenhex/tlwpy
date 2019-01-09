@@ -5,22 +5,18 @@ import concurrent.futures
 
 
 class MqttBase:
-    __slots__ = ['mqtt_client', 'event_loop', '__host', '__port', '__topics', '__connected', '__on_connected_futures']
+    __slots__ = ['mqtt_client', 'event_loop', '__host', '__port', '__topics', '__connected']
 
     def __on_connect(self, client, userdata, flags, rc):
-        self.__connected = True
         for topic in self.__topics:
             self.mqtt_client.subscribe(topic)
-
-        for future in self.__on_connected_futures:
-            self.__on_connected_futures.remove(future)
-            self.event_loop.call_soon_threadsafe(future.set_result, True)
+        self.event_loop.call_soon_threadsafe(self.__connected.set())
 
     def __on_sub(self, client, userdata, mid, granted_qos):
         self.__logger.debug("subbed")
 
     def __on_disconnect(self, client, userdata, rc):
-        self.__connected = False
+        self.event_loop.call_soon_threadsafe(self.__connected.clear())
 
     def __init__(self, host: str = "localhost", port: int = None, id: str = None, topics: [] = []):
         # stash the mqtt parameters
@@ -30,9 +26,8 @@ class MqttBase:
         self.__port = port
         self.__topics = topics
 
-        # create the connection state tracking stuf
-        self.__connected = False
-        self.__on_connected_futures = []
+        # create the connection state tracking stuff
+        self.__connected = asyncio.Event()
 
         # create and configure the mqtt client
         self.mqtt_client = mqtt.Client(client_id=id)
@@ -52,12 +47,4 @@ class MqttBase:
         self.mqtt_client.disconnect()
 
     async def wait_for_connection(self):
-        if self.__connected:
-            return True
-        else:
-            future = asyncio.get_running_loop().create_future()
-            self.__on_connected_futures.append(future)
-            try:
-                await asyncio.wait_for(future, 10)
-            except concurrent.futures.TimeoutError:
-                return self.__connected
+        await asyncio.wait_for(self.__connected.wait(), 30)
