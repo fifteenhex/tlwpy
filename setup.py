@@ -6,7 +6,8 @@ extensions = [
     Extension(
         'tlwpy.liblorawan',
         ['liblorawan/lorawan.pyx', 'liblorawan/crypto.c', 'liblorawan/packet.c'],
-        libraries=['crypto']
+        libraries=['crypto'],
+	extra_compile_args = ['-std=gnu99']
     )
 ]
 
