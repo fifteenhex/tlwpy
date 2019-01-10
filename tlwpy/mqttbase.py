@@ -1,6 +1,11 @@
 import paho.mqtt.client as mqtt
 import asyncio
 import logging
+import random
+
+
+def create_client_id(base: str):
+    return '%s-%d' % (base, random.randint(0, 1024))
 
 
 class MqttBase:
@@ -8,12 +13,17 @@ class MqttBase:
                  '__host', '__port', '__topics', '__connected',
                  '__logger']
 
-    def __on_connect(self, client, userdata, flags, rc):
-        self.__logger.debug('Connected')
+    def __sub_topics(self):
         for topic in self.__topics:
             self.__logger.debug('Subbing to %s' % topic)
-            assert self.mqtt_client.subscribe(topic) == mqtt.MQTT_ERR_SUCCESS
-        self.event_loop.call_soon_threadsafe(self.__connected.set())
+            rc = self.mqtt_client.subscribe(topic)[0]
+            assert rc == mqtt.MQTT_ERR_SUCCESS, 'subscribe failed with %d' % rc
+
+    def __on_connect(self, client, userdata, flags, rc):
+        self.__logger.debug('Connected')
+        self.event_loop.call_soon_threadsafe(self.__sub_topics)
+        self.event_loop.call_soon_threadsafe(self.__connected.set)
+        self.__logger.debug('...')
 
     def __on_sub(self, client, userdata, mid, granted_qos):
         self.__logger.debug('Subbed')
@@ -60,4 +70,4 @@ class MqttBase:
         self.mqtt_client.disconnect()
 
     async def wait_for_connection(self):
-        return await asyncio.wait_for(self.__connected.wait(), 30)
+        await asyncio.wait_for(self.__connected.wait(), 10)
