@@ -60,4 +60,4 @@ class MqttBase:
         self.mqtt_client.disconnect()
 
     async def wait_for_connection(self):
-        await asyncio.wait_for(self.__connected.wait(), 30)
+        return await asyncio.wait_for(self.__connected.wait(), 30)
