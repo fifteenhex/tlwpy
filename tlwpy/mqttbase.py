@@ -34,6 +34,8 @@ class MqttBase:
 
         # create and configure the mqtt client
         self.mqtt_client = mqtt.Client(client_id=id)
+        self.mqtt_client.max_inflight_messages_set(0)
+        self.mqtt_client.max_queued_messages_set(0)
         self.mqtt_client.on_connect = self.__on_connect
         self.mqtt_client.on_subscribe = self.__on_sub
         self.mqtt_client.on_disconnect = self.__on_disconnect
@@ -47,11 +49,11 @@ class MqttBase:
         while self.event_loop.is_running():
             rc = self.mqtt_client.loop(1)
             if rc != mqtt.MQTT_ERR_SUCCESS:
-                self.__logger.warn('might have gotten disconnected, %s' % mqtt.error_string(rc))
+                self.__logger.warning('might have gotten disconnected, %s' % mqtt.error_string(rc))
                 try:
                     self.mqtt_client.reconnect()
                 except ConnectionRefusedError:
-                    self.__logger.warn('connection was refused')
+                    self.__logger.warning('connection was refused')
         self.mqtt_client.disconnect()
 
     async def wait_for_connection(self):
