@@ -9,14 +9,16 @@ class MqttBase:
                  '__logger']
 
     def __on_connect(self, client, userdata, flags, rc):
+        self.__logger.debug('Connected')
         for topic in self.__topics:
             self.mqtt_client.subscribe(topic)
         self.event_loop.call_soon_threadsafe(self.__connected.set())
 
     def __on_sub(self, client, userdata, mid, granted_qos):
-        self.__logger.debug("subbed")
+        self.__logger.debug('Subbed')
 
     def __on_disconnect(self, client, userdata, rc):
+        self.__logger.debug('Disconnected')
         self.event_loop.call_soon_threadsafe(self.__connected.clear())
 
     def __init__(self, host: str = "localhost", port: int = None, id: str = None, topics: [] = []):
