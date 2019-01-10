@@ -74,11 +74,11 @@ class Tlwbe(MqttBase):
 
     def __on_join(self, client, userdata, msg):
         self.__dump_message(msg)
-        self.queue_joins.put_nowait(Join(msg))
+        self.event_loop.call_soon_threadsafe(self.queue_joins.put_nowait, Join(msg))
 
     def __on_uplink(self, client, userdata, msg):
         self.__dump_message(msg)
-        self.queue_uplinks.put_nowait(Uplink(msg))
+        self.event_loop.call_soon_threadsafe(self.queue_uplinks.put_nowait, Uplink(msg))
 
     def __on_result(self, msg, results: dict):
         self.__dump_message(msg)

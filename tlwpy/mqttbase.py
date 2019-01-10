@@ -1,7 +1,5 @@
 import paho.mqtt.client as mqtt
 import asyncio
-import time
-import concurrent.futures
 import logging
 
 
@@ -49,7 +47,7 @@ class MqttBase:
         while self.event_loop.is_running():
             rc = self.mqtt_client.loop(1)
             if rc != mqtt.MQTT_ERR_SUCCESS:
-                self.__logger.warn('might have gotten disconnected, %s' % self.mqtt_client.error_string(rc))
+                self.__logger.warn('might have gotten disconnected, %s' % mqtt.error_string(rc))
                 try:
                     self.mqtt_client.reconnect()
                 except ConnectionRefusedError:

@@ -21,7 +21,7 @@ class PacketForwarder(MqttBase):
             uplink = lorawan.Uplink(pkt_data)
             self.__logger.debug(
                 'saw uplink for %x, framecounter %d, port %d' % (uplink.devaddr, uplink.framecounter, uplink.port))
-            self.uplinks.put_nowait(lorawan.Uplink(pkt_data))
+            self.event_loop.call_soon_threadsafe(self.uplinks.put_nowait, lorawan.Uplink(pkt_data))
 
     def __on_tx(self, client, userdata, msg: mqtt.MQTTMessage):
         payload_json = json.loads(msg.payload)
@@ -30,12 +30,12 @@ class PacketForwarder(MqttBase):
         if pkt_type == lorawan.MHDR_MTYPE_JOINACK:
             join_ack = lorawan.JoinAccept(pkt_data)
             self.__logger.debug('saw joinack')
-            self.joinacks.put_nowait(join_ack)
+            self.event_loop.call_soon_threadsafe(self.joinacks.put_nowait, join_ack)
         elif pkt_type == lorawan.MHDR_MTYPE_CNFDN or pkt_type == lorawan.MHDR_MTYPE_UNCNFDN:
             downlink = lorawan.Downlink(pkt_data)
             self.__logger.debug('saw downlink for %x, framecounter %d, port %d' % (
                 downlink.devaddr, downlink.framecounter, downlink.port))
-            self.downlinks.put_nowait(downlink)
+            self.event_loop.call_soon_threadsafe(self.downlinks.put_nowait, downlink)
 
     def __init__(self, host: str, port: int = None):
         rx_topic = 'pktfwdbr/+/rx/#'
