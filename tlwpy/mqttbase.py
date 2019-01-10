@@ -11,7 +11,8 @@ class MqttBase:
     def __on_connect(self, client, userdata, flags, rc):
         self.__logger.debug('Connected')
         for topic in self.__topics:
-            self.mqtt_client.subscribe(topic)
+            self.__logger.debug('Subbing to %s' % topic)
+            assert self.mqtt_client.subscribe(topic) == mqtt.MQTT_ERR_SUCCESS
         self.event_loop.call_soon_threadsafe(self.__connected.set())
 
     def __on_sub(self, client, userdata, mid, granted_qos):
