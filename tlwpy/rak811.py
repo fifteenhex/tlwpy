@@ -27,6 +27,15 @@ class Status(Enum):
     UNKNOWN = 100
 
 
+class Band(Enum):
+    AS923 = 0
+    EU868 = 1
+    AU915 = 2
+    US915 = 3
+    IN865 = 4
+    KR920 = 5
+
+
 class Rak811:
     __slots__ = ['port', '__logger']
 
@@ -100,6 +109,10 @@ class Rak811:
 
     def get_band(self):
         line = self.__encode_command('band')
+        self.__write_line_read_result(line)
+
+    def set_band(self, band: Band):
+        line = self.__encode_command('band', [band.name])
         self.__write_line_read_result(line)
 
     def get_class(self):
