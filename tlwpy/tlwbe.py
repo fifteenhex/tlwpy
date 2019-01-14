@@ -29,6 +29,8 @@ TOPIC_APP_LIST = 'tlwbe/control/app/%s' % ACTION_LIST
 
 TOPIC_CONTROL_RESULT = 'tlwbe/control/result/#'
 
+RESULT_OK = 0
+
 
 class Join:
     __slots__ = 'appeui', 'deveui', 'timestamp'
@@ -54,17 +56,48 @@ class Uplink:
         self.rfparams = msg_json.get('rfparams')
 
 
+class App:
+    __slots__ = ['name', 'eui']
+
+    def __init__(self, json_app: dict):
+        self.name = json_app['name']
+        self.eui = json_app['eui']
+
+
+class Dev:
+    __slots__ = ['name', 'eui', 'app_eui', 'key', 'serial']
+
+    def __init__(self, json_dev: dict):
+        self.name = json_dev['name']
+        self.eui = json_dev['eui']
+        self.app_eui = json_dev['appeui']
+        self.key = json_dev['key']
+        self.serial = json_dev['serial']
+
+
 class Result:
-    __slots__ = ['token', 'result', 'code']
+    __slots__ = ['token', 'result', 'code', 'eui_list', 'app', 'dev']
 
     def __init__(self, msg: mqtt.MQTTMessage):
         self.token = msg.topic.split("/")[-1]
         self.result = json.loads(msg.payload.decode('utf-8'))
         self.code = self.result['code']
 
+        if 'eui_list' in self.result:
+            self.eui_list = self.result['eui_list']
+        elif 'app' in self.result:
+            self.app = App(self.result['app'])
+        elif 'dev' in self.result:
+            self.dev = Dev(self.result['dev'])
+
 
 class Tlwbe(MqttBase):
-    __slots__ = ['queue_joins', 'queue_uplinks', '__logger', '__control_results', '__downlink_results']
+    __slots__ = ['queue_joins',
+                 'queue_uplinks',
+                 '__id',
+                 '__logger',
+                 '__control_results',
+                 '__downlink_results']
 
     def __dump_message(self, msg):
         self.__logger.debug('publish on %s' % msg.topic)
@@ -85,11 +118,14 @@ class Tlwbe(MqttBase):
         self.__dump_message(msg)
         result = Result(msg)
         self.__logger.debug('have result for %s' % result.token)
-        if result.token in results:
-            future: Future = results.pop(result.token)
-            self.event_loop.call_soon_threadsafe(future.set_result, result)
+        if result.token.startswith(self.__id):
+            if result.token in results:
+                future: Future = results.pop(result.token)
+                self.event_loop.call_soon_threadsafe(future.set_result, result)
+            else:
+                self.__logger.warning('rogue result')
         else:
-            self.__logger.warning('rogue result')
+            self.__logger.debug('ignoring result, probably not for us')
 
     def __on_control_result(self, client, userdata, msg):
         self.__on_result(msg, self.__control_results)
@@ -98,7 +134,8 @@ class Tlwbe(MqttBase):
         self.__on_result(msg, self.__downlink_results)
 
     def __init__(self, host: str = 'localhost', port: int = None):
-        super().__init__(host, port=port, id=tlwpy.mqttbase.create_client_id('tlwbe'),
+        self.__id = tlwpy.mqttbase.create_client_id('tlwbe')
+        super().__init__(host, port=port, id=self.__id,
                          topics=['tlwbe/control/result/#', 'tlwbe/downlink/result/#'])
         self.queue_joins = Queue()
         self.queue_uplinks = Queue()
@@ -114,7 +151,7 @@ class Tlwbe(MqttBase):
         self.__logger = logging.getLogger('tlwbe')
 
     async def __publish_and_wait_for_result(self, topic: str, payload: dict, results: dict):
-        token = str(uuid4())
+        token = "%s_%s" % (self.__id, str(uuid4()))
         future = asyncio.get_running_loop().create_future()
         results[token] = future
         await self.wait_for_connection()
