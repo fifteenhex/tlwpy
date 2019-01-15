@@ -29,6 +29,8 @@ TOPIC_APP_DELETE = 'tlwbe/control/app/%s' % ACTION_DELETE
 TOPIC_APP_LIST = 'tlwbe/control/app/%s' % ACTION_LIST
 
 TOPIC_CONTROL_RESULT = 'tlwbe/control/result/#'
+
+TOPIC_DOWNLINK_QUERY = 'tlwbe/downlink/query'
 TOPIC_DOWNLINK_RESULT = 'tlwbe/downlink/result/#'
 
 TOPIC_UPLINK_QUERY = 'tlwbe/uplinks/query'
@@ -256,9 +258,23 @@ class Tlwbe(MqttBase):
         result = await self.__publish_and_wait_for_control_result(TOPIC_APP_LIST, payload)
         return result
 
-    async def list_uplinks(self, dev_eui: str, app_eui: str):
-        payload = {'deveui': dev_eui}
+    async def list_uplinks(self, app_eui: str, dev_eui: str):
+        payload = {}
+        if app_eui is not None:
+            payload['appeui'] = app_eui
+        if dev_eui is not None:
+            payload['deveui'] = dev_eui
         result = await self.__publish_and_wait_for_uplink_result(TOPIC_UPLINK_QUERY, payload)
+        return result
+
+    async def list_downlinks(self, app_eui: str, dev_eui: str):
+        payload = {}
+        if app_eui is not None:
+            payload['appeui'] = app_eui
+        if dev_eui is not None:
+            payload['deveui'] = dev_eui
+
+        result = await self.__publish_and_wait_for_uplink_result(TOPIC_DOWNLINK_QUERY, payload)
         return result
 
     def listen_for_joins(self, appeui: str, deveui: str):
@@ -267,7 +283,7 @@ class Tlwbe(MqttBase):
     def listen_for_uplinks(self, appeui: str, deveui: str, port: int):
         self.__sub_to_topic('tlwbe/uplink/%s/%s/%d' % (appeui, deveui, port))
 
-    async def send_downlink(self, app_eui, dev_eui, port, payload: bytes = None, confirm=False):
+    async def send_downlink(self, app_eui: str, dev_eui: str, port: int, payload: bytes = None, confirm=False):
         msg_topic = 'tlwbe/downlink/schedule/%s/%s/%d' % (app_eui, dev_eui, port)
         msg_payload = {'confirm': confirm}
         if payload is not None:
