@@ -143,6 +143,15 @@ class Rak811:
         line = self.__encode_command('status')
         self.__write_line_read_result(line)
 
+    def set_otaa_parameters(self, app_eui: str, dev_eui: str, key: str):
+        assert app_eui is not None
+        assert dev_eui is not None
+        assert key is not None
+
+        parameters = 'app_eui:%s&dev_eui:%s&app_key:%s' % (app_eui, dev_eui, key)
+        line = self.__encode_command('set_config', [parameters])
+        self.__write_line_read_result(line)
+
     def join(self, otaa=True):
         line = self.__encode_command('join', (['otaa'] if otaa else ['abp']))
         self.port.write(line)

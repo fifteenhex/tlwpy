@@ -28,6 +28,10 @@ TOPIC_APP_DELETE = 'tlwbe/control/app/%s' % ACTION_DELETE
 TOPIC_APP_LIST = 'tlwbe/control/app/%s' % ACTION_LIST
 
 TOPIC_CONTROL_RESULT = 'tlwbe/control/result/#'
+TOPIC_DOWNLINK_RESULT = 'tlwbe/downlink/result/#'
+
+TOPIC_UPLINK_QUERY = 'tlwbe/uplinks/query'
+TOPIC_UPLINK_RESULT = 'tlwbe/uplinks/result/#'
 
 RESULT_OK = 0
 
@@ -97,6 +101,7 @@ class Tlwbe(MqttBase):
                  '__id',
                  '__logger',
                  '__control_results',
+                 '__uplink_results',
                  '__downlink_results']
 
     def __dump_message(self, msg):
@@ -130,13 +135,16 @@ class Tlwbe(MqttBase):
     def __on_control_result(self, client, userdata, msg):
         self.__on_result(msg, self.__control_results)
 
+    def __on_uplink_result(self, client, userdata, msg):
+        self.__on_result(msg, self.__uplink_results)
+
     def __on_downlink_result(self, client, userdata, msg):
         self.__on_result(msg, self.__downlink_results)
 
     def __init__(self, host: str = 'localhost', port: int = None):
         self.__id = tlwpy.mqttbase.create_client_id('tlwbe')
         super().__init__(host, port=port, id=self.__id,
-                         topics=['tlwbe/control/result/#', 'tlwbe/downlink/result/#'])
+                         topics=[TOPIC_CONTROL_RESULT, TOPIC_UPLINK_RESULT, TOPIC_DOWNLINK_RESULT])
         self.queue_joins = Queue()
         self.queue_uplinks = Queue()
         self.__control_results = {}
@@ -145,7 +153,8 @@ class Tlwbe(MqttBase):
         self.mqtt_client.message_callback_add('tlwbe/join/+/+', self.__on_join)
         self.mqtt_client.message_callback_add('tlwbe/uplink/#', self.__on_uplink)
         self.mqtt_client.message_callback_add(TOPIC_CONTROL_RESULT, self.__on_control_result)
-        self.mqtt_client.message_callback_add('tlwbe/downlink/result/#', self.__on_downlink_result)
+        self.mqtt_client.message_callback_add(TOPIC_UPLINK_RESULT, self.__on_uplink_result)
+        self.mqtt_client.message_callback_add(TOPIC_DOWNLINK_RESULT, self.__on_downlink_result)
         self.mqtt_client.on_message = self.__on_msg
 
         self.__logger = logging.getLogger('tlwbe')
@@ -162,6 +171,9 @@ class Tlwbe(MqttBase):
 
     async def __publish_and_wait_for_control_result(self, topic: str, payload: dict):
         return await self.__publish_and_wait_for_result(topic, payload, self.__control_results)
+
+    async def __publish_and_wait_for_uplink_result(self, topic: str, payload: dict):
+        return await self.__publish_and_wait_for_result(topic, payload, self.__uplink_results)
 
     async def __publish_and_wait_for_downlink_result(self, topic: str, payload: dict):
         return await self.__publish_and_wait_for_result(topic, payload, self.__downlink_results)
@@ -235,6 +247,11 @@ class Tlwbe(MqttBase):
     async def list_apps(self):
         payload = {}
         result = await self.__publish_and_wait_for_control_result(TOPIC_APP_LIST, payload)
+        return result
+
+    async def list_uplinks(self, dev_eui: str, app_eui: str):
+        payload = {'deveui': dev_eui}
+        result = await self.__publish_and_wait_for_uplink_result(TOPIC_UPLINK_QUERY, payload)
         return result
 
     def listen_for_joins(self, appeui: str, deveui: str):
