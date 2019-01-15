@@ -8,6 +8,7 @@ import base64
 import logging
 import tlwpy.mqttbase
 from tlwpy.mqttbase import MqttBase
+from datetime import datetime
 
 ACTION_ADD = 'add'
 ACTION_GET = 'get'
@@ -47,17 +48,16 @@ class Join:
 
 
 class Uplink:
-    __slots__ = ['timestamp', 'appeui', 'devui', 'port', 'payload', 'rfparams']
+    __slots__ = ['timestamp', 'app_eui', 'dev_eui', 'port', 'payload', 'rfparams']
 
-    def __init__(self, msg: mqtt.MQTTMessage):
-        msg_json = json.loads(msg.payload)
-        self.timestamp = msg_json.get('timestamp')
-        self.appeui = msg_json.get('appeui')
-        self.devui = msg_json.get('deveui')
-        self.port = msg_json.get('port')
-        b64_payload: str = msg_json.get('payload')
+    def __init__(self, uplink_json: dict):
+        self.timestamp = datetime.fromtimestamp(uplink_json.get('timestamp') / 1000000)
+        self.app_eui = uplink_json.get('appeui')
+        self.dev_eui = uplink_json.get('deveui')
+        self.port = uplink_json.get('port')
+        b64_payload: str = uplink_json.get('payload')
         self.payload = base64.decodebytes(b64_payload.encode("ascii"))
-        self.rfparams = msg_json.get('rfparams')
+        self.rfparams = uplink_json.get('rfparams')
 
 
 class App:
@@ -80,7 +80,8 @@ class Dev:
 
 
 class Result:
-    __slots__ = ['token', 'result', 'code', 'eui_list', 'app', 'dev']
+    __slots__ = ['token', 'result', 'code',
+                 'eui_list', 'app', 'dev', 'uplinks']
 
     def __init__(self, msg: mqtt.MQTTMessage):
         self.token = msg.topic.split("/")[-1]
@@ -93,6 +94,10 @@ class Result:
             self.app = App(self.result['app'])
         elif 'dev' in self.result:
             self.dev = Dev(self.result['dev'])
+        elif 'uplinks' in self.result:
+            self.uplinks = []
+            for ul in self.result['uplinks']:
+                self.uplinks.append(Uplink(ul))
 
 
 class Tlwbe(MqttBase):
@@ -117,7 +122,8 @@ class Tlwbe(MqttBase):
 
     def __on_uplink(self, client, userdata, msg):
         self.__dump_message(msg)
-        self.event_loop.call_soon_threadsafe(self.queue_uplinks.put_nowait, Uplink(msg))
+        uplink_json = json.loads(msg.payload)
+        self.event_loop.call_soon_threadsafe(self.queue_uplinks.put_nowait, Uplink(uplink_json))
 
     def __on_result(self, msg, results: dict):
         self.__dump_message(msg)
@@ -148,6 +154,7 @@ class Tlwbe(MqttBase):
         self.queue_joins = Queue()
         self.queue_uplinks = Queue()
         self.__control_results = {}
+        self.__uplink_results = {}
         self.__downlink_results = {}
 
         self.mqtt_client.message_callback_add('tlwbe/join/+/+', self.__on_join)
