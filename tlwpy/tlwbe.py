@@ -274,7 +274,7 @@ class Tlwbe(MqttBase):
         if dev_eui is not None:
             payload['deveui'] = dev_eui
 
-        result = await self.__publish_and_wait_for_uplink_result(TOPIC_DOWNLINK_QUERY, payload)
+        result = await self.__publish_and_wait_for_downlink_result(TOPIC_DOWNLINK_QUERY, payload)
         return result
 
     def listen_for_joins(self, appeui: str, deveui: str):
