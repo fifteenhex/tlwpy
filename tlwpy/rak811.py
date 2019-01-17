@@ -43,6 +43,12 @@ class Rak811:
         self.port = port
         self.__logger = logging.getLogger('rak811')
 
+    @staticmethod
+    def from_path(path):
+        ser = serial.Serial(path, 115200, timeout=10)
+        rak811 = Rak811(ser)
+        return rak811
+
     def __encode_command(self, command: str, params=[]):
         line = 'at+%s' % command
         if len(params) > 0:
@@ -162,6 +168,7 @@ class Rak811:
         return status == Status.JOINED_SUCCESS
 
     def send(self, port, data: bytearray, confirmed=False):
+        self.port.flushInput()
         assert (1 <= port <= 223)
         line = self.__encode_command('send', [str(1 if confirmed else 0), str(port), data.hex()])
         self.port.write(line)
@@ -171,7 +178,10 @@ class Rak811:
         while len(lines) < 3:
             in_line = self.__read_line()
             if in_line is None:
-                break
+                if len(lines) < 2:
+                    continue
+                else:
+                    break
             lines.append(in_line)
 
         self.__logger.debug(",".join(lines))
