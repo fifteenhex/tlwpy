@@ -40,8 +40,20 @@ class JoinReq(Packet):
 
 
 class JoinAccept(Packet):
+    __slots__ = ['appnonce', 'netid', 'devaddr', 'dlsetting', 'rxdelay']
+
     def __init__(self, raw_packet: bytearray):
         super(JoinAccept, self).__init__(raw_packet)
+
+        fixed_part = self.mac_payload[:12]
+        fixed_part[3:3] = [0]
+        fixed_part[7:7] = [0]
+        unpacked = struct.unpack('<LLLBB', fixed_part)
+        self.appnonce = unpacked[0]
+        self.netid = unpacked[1]
+        self.devaddr = unpacked[2]
+        self.dlsetting = unpacked[3]
+        self.rxdelay = unpacked[4]
 
 
 class EncryptedJoinAccept:
@@ -57,6 +69,7 @@ class EncryptedJoinAccept:
         packet_mic = struct.unpack('<L', decrypted[-4:])[0]
         actual_mic = calculate_mic(key, bytes(decrypted[:-4]))
         assert packet_mic == actual_mic, ('Calculated mic of %x but expected %x' % (actual_mic, packet_mic))
+        return JoinAccept(decrypted)
 
 
 class Data(Packet):

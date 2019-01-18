@@ -53,6 +53,7 @@ class Gateway(MqttBase):
 
         encrypted_joinack = await asyncio.wait_for(self.__pktfwdbr.joinacks.get(), 10)
         joinack = encrypted_joinack.decrypt(bin_dev_key)
+        return joinack
 
     async def send_uplink(self):
         pass
