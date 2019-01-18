@@ -11,7 +11,7 @@ def create_client_id(base: str):
 class MqttBase:
     __slots__ = ['mqtt_client', 'event_loop',
                  '__host', '__port', '__topics', '__connected',
-                 '__logger']
+                 '__logger', '__mqtt_future']
 
     def __sub_topics(self):
         for topic in self.__topics:
@@ -55,7 +55,7 @@ class MqttBase:
 
         # get the event loop and start running the mqtt loop
         self.event_loop = asyncio.get_running_loop()
-        self.event_loop.run_in_executor(None, self.__loop)
+        self.__mqtt_future = self.event_loop.run_in_executor(None, self.__loop)
 
     def __loop(self):
         self.mqtt_client.connect(self.__host, self.__port)
@@ -70,4 +70,7 @@ class MqttBase:
         self.mqtt_client.disconnect()
 
     async def wait_for_connection(self):
+        # make sure the client loop is still running
+        if self.__mqtt_future.done():
+            self.__mqtt_future.result()
         await asyncio.wait_for(self.__connected.wait(), 10)
