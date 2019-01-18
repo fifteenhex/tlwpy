@@ -1,6 +1,8 @@
 import struct
 import logging
 
+from tlwpy.liblorawan import decrypt_joinack, calculate_mic
+
 MHDR_MTYPE_SHIFT = 5
 MHDR_MTYPE_MASK = 0b111
 MHDR_MTYPE_JOINREQ = 0b000
@@ -40,6 +42,21 @@ class JoinReq(Packet):
 class JoinAccept(Packet):
     def __init__(self, raw_packet: bytearray):
         super(JoinAccept, self).__init__(raw_packet)
+
+
+class EncryptedJoinAccept:
+    __slots__ = ['data']
+
+    def __init__(self, data: bytes):
+        assert (len(data) - 1) % 16 == 0
+        self.data = data
+
+    def decrypt(self, key: bytes):
+        decrypted = decrypt_joinack(key, self.data)
+        assert (len(decrypted) - 1) % 16 == 0
+        packet_mic = struct.unpack('<L', decrypted[-4:])[0]
+        actual_mic = calculate_mic(key, bytes(decrypted[:-4]))
+        assert packet_mic == actual_mic, ('Calculated mic of %x but expected %x' % (actual_mic, packet_mic))
 
 
 class Data(Packet):

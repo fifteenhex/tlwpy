@@ -28,6 +28,9 @@ class MqttBase:
     def __on_sub(self, client, userdata, mid, granted_qos):
         self.__logger.debug('Subbed')
 
+    def __on_msg(self, client, userdata, msg):
+        self.__logger.warning('publish on %s' % msg.topic)
+
     def __on_disconnect(self, client, userdata, rc):
         self.__logger.debug('Disconnected')
         self.event_loop.call_soon_threadsafe(self.__connected.clear())
@@ -51,6 +54,7 @@ class MqttBase:
         self.mqtt_client.max_queued_messages_set(0)
         self.mqtt_client.on_connect = self.__on_connect
         self.mqtt_client.on_subscribe = self.__on_sub
+        self.mqtt_client.on_message = self.__on_msg
         self.mqtt_client.on_disconnect = self.__on_disconnect
 
         # get the event loop and start running the mqtt loop

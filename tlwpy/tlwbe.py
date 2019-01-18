@@ -114,10 +114,6 @@ class Tlwbe(MqttBase):
     def __dump_message(self, msg):
         self.__logger.debug('publish on %s' % msg.topic)
 
-    def __on_msg(self, client, userdata, msg):
-        self.__dump_message(msg)
-        self.__logger.warning('rogue publish')
-
     def __on_join(self, client, userdata, msg):
         self.__dump_message(msg)
         self.event_loop.call_soon_threadsafe(self.queue_joins.put_nowait, Join(msg))
@@ -164,7 +160,6 @@ class Tlwbe(MqttBase):
         self.mqtt_client.message_callback_add(TOPIC_CONTROL_RESULT, self.__on_control_result)
         self.mqtt_client.message_callback_add(TOPIC_UPLINK_RESULT, self.__on_uplink_result)
         self.mqtt_client.message_callback_add(TOPIC_DOWNLINK_RESULT, self.__on_downlink_result)
-        self.mqtt_client.on_message = self.__on_msg
 
         self.__logger = logging.getLogger('tlwbe')
 
@@ -267,7 +262,7 @@ class Tlwbe(MqttBase):
         result = await self.__publish_and_wait_for_uplink_result(TOPIC_UPLINK_QUERY, payload)
         return result
 
-    async def list_downlinks(self, app_eui: str, dev_eui: str):
+    async def list_downlinks(self, app_eui: str = None, dev_eui: str = None):
         payload = {}
         if app_eui is not None:
             payload['appeui'] = app_eui
