@@ -166,9 +166,14 @@ class Rak811:
         status = self.__read_recv()
 
         valid_statuses = [Status.JOINED_SUCCESS, Status.JOINED_FAILED, Status.RX2_TIMEOUT]
-
         assert status in valid_statuses, 'status %s isn\'t valid here' % valid_statuses
-        return status == Status.JOINED_SUCCESS
+        joined = status == Status.JOINED_SUCCESS
+
+        # when join fails the module locks up on the next attempt so reset it
+        if not joined:
+            self.reset()
+
+        return joined
 
     def send(self, port, data: bytearray, confirmed=False):
         self.port.flushInput()
