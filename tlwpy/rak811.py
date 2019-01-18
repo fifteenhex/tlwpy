@@ -164,7 +164,10 @@ class Rak811:
         self.__read_command_result()
 
         status = self.__read_recv()
-        assert status == Status.JOINED_SUCCESS or status == Status.JOINED_FAILED
+
+        valid_statuses = [Status.JOINED_SUCCESS, Status.JOINED_FAILED, Status.RX2_TIMEOUT]
+
+        assert status in valid_statuses, 'status %s isn\'t valid here' % valid_statuses
         return status == Status.JOINED_SUCCESS
 
     def send(self, port, data: bytearray, confirmed=False):
