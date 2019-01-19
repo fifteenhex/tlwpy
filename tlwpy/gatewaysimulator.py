@@ -9,6 +9,7 @@ from tlwpy.lorawan import JoinAccept, SessionKeys
 
 PKTFWDBRROOT = 'pktfwdbr'
 RX_TYPE_JOIN = 'join'
+RX_TYPE_UNCONFIRMED = 'unconfirmed'
 
 
 class Gateway(MqttBase):
@@ -27,17 +28,7 @@ class Gateway(MqttBase):
         await self.wait_for_connection()
         self.mqtt_client.publish(topic, json.dumps(payload))
 
-    async def join(self, app_eui: str, dev_eui: str, dev_key: str):
-        assert len(app_eui) is 16
-        assert len(dev_eui) is 16
-        topic = '%s/%s/rx/%s/%s/%s' % (PKTFWDBRROOT, self.__gateway_id, RX_TYPE_JOIN, app_eui, dev_eui)
-
-        bin_dev_key = bytes.fromhex(dev_key)
-
-        dev_nonce = 0
-
-        data = tlwpy.liblorawan.build_joinreq(bin_dev_key, bytes.fromhex(app_eui), bytes.fromhex(dev_eui), dev_nonce)
-
+    def __create_tx_json(self, data: bytes):
         payload = {"tmst": 3889331076,
                    "chan": 1,
                    "rfch": 0,
@@ -50,6 +41,20 @@ class Gateway(MqttBase):
                    "rssi": -48,
                    "size": 23,
                    "data": base64.b64encode(data).decode('ascii')}
+        return payload
+
+    async def join(self, app_eui: str, dev_eui: str, dev_key: str):
+        assert len(app_eui) is 16
+        assert len(dev_eui) is 16
+        topic = '%s/%s/rx/%s/%s/%s' % (PKTFWDBRROOT, self.__gateway_id, RX_TYPE_JOIN, app_eui, dev_eui)
+
+        bin_dev_key = bytes.fromhex(dev_key)
+
+        dev_nonce = 0
+
+        data = tlwpy.liblorawan.build_joinreq(bin_dev_key, bytes.fromhex(app_eui), bytes.fromhex(dev_eui), dev_nonce)
+
+        payload = self.__create_tx_json(data)
 
         await self.send_pktfwdbr_publish(topic, payload)
 
@@ -58,8 +63,14 @@ class Gateway(MqttBase):
 
         session_keys = SessionKeys(bin_dev_key, joinack.appnonce, joinack.netid, dev_nonce)
 
-    async def send_uplink(self):
-        pass
+        return joinack.devaddr, session_keys.network_key, session_keys.app_key
+
+    async def send_uplink(self, ptype: int, dev_addr: int, framecounter: int, port: int, network_key: bytes,
+                          application_key: bytes, payload: bytes = None):
+        topic = '%s/%s/rx/%s' % (PKTFWDBRROOT, self.__gateway_id, RX_TYPE_UNCONFIRMED)
+        data = tlwpy.liblorawan.build_data(ptype, dev_addr, framecounter, port, payload, network_key, application_key)
+        payload = self.__create_tx_json(data)
+        await self.send_pktfwdbr_publish(topic, payload)
 
     async def send_txack(self):
         pass
