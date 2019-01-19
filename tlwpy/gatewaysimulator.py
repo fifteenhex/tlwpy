@@ -5,6 +5,7 @@ import tlwpy.liblorawan
 import tlwpy.pktfwdbr
 import base64
 import asyncio
+from tlwpy.lorawan import JoinAccept, SessionKeys
 
 PKTFWDBRROOT = 'pktfwdbr'
 RX_TYPE_JOIN = 'join'
@@ -33,8 +34,9 @@ class Gateway(MqttBase):
 
         bin_dev_key = bytes.fromhex(dev_key)
 
-        data = tlwpy.liblorawan.build_joinreq(bin_dev_key, bytes.fromhex(app_eui), bytes.fromhex(dev_eui),
-                                              b'00')
+        dev_nonce = 0
+
+        data = tlwpy.liblorawan.build_joinreq(bin_dev_key, bytes.fromhex(app_eui), bytes.fromhex(dev_eui), dev_nonce)
 
         payload = {"tmst": 3889331076,
                    "chan": 1,
@@ -52,8 +54,9 @@ class Gateway(MqttBase):
         await self.send_pktfwdbr_publish(topic, payload)
 
         encrypted_joinack = await asyncio.wait_for(self.__pktfwdbr.joinacks.get(), 10)
-        joinack = encrypted_joinack.decrypt(bin_dev_key)
-        return joinack
+        joinack: JoinAccept = encrypted_joinack.decrypt(bin_dev_key)
+
+        session_keys = SessionKeys(bin_dev_key, joinack.appnonce, joinack.netid, dev_nonce)
 
     async def send_uplink(self):
         pass

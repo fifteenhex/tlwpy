@@ -1,7 +1,7 @@
 import struct
 import logging
 
-from tlwpy.liblorawan import decrypt_joinack, calculate_mic
+from tlwpy.liblorawan import decrypt_joinack, calculate_mic, calculate_sessionkeys
 
 MHDR_MTYPE_SHIFT = 5
 MHDR_MTYPE_MASK = 0b111
@@ -54,6 +54,19 @@ class JoinAccept(Packet):
         self.devaddr = unpacked[2]
         self.dlsetting = unpacked[3]
         self.rxdelay = unpacked[4]
+
+
+class SessionKeys:
+    __slots__ = ['network_key', 'app_key']
+
+    def __init__(self, key: bytes, appnonce: int, netid: int, devnonce: int):
+        keys = calculate_sessionkeys(key, appnonce, netid, devnonce)
+        assert len(keys) is 32
+        self.network_key = keys[:16]
+        self.app_key = keys[16:]
+
+    def from_join_req_and_accept(self, key: bytes, req: JoinReq, accept: JoinAccept):
+        return SessionKeys(key, accept.appnonce, accept.netid, req.devnonce)
 
 
 class EncryptedJoinAccept:
