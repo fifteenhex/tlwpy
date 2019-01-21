@@ -13,6 +13,8 @@ MHDR_MTYPE_UNCNFDN = 0b011
 MHDR_MTYPE_CNFUP = 0b100
 MHDR_MTYPE_CNFDN = 0b101
 
+FCTRL_ADR_SHIFT = 7
+FCTRL_ACK_SHIFT = 5
 FCTRL_FOPTSLEN_MASK = 0b1111
 
 
@@ -96,7 +98,13 @@ class EncryptedJoinAccept:
 
 
 class Data(Packet):
-    __slots__ = ['devaddr', 'framecounter', 'port', 'data', 'mic']
+    __slots__ = ['devaddr',
+                 'adr',
+                 'ack',
+                 'framecounter',
+                 'port',
+                 'data',
+                 'mic']
 
     def __init__(self, raw_packet: bytearray):
         super(Data, self).__init__(raw_packet)
@@ -111,6 +119,8 @@ class Data(Packet):
 
         # parse fctrl byte
         fctrl = unpacked_header[1]
+        self.adr = bool(fctrl >> FCTRL_ADR_SHIFT)
+        self.ack = bool(fctrl >> FCTRL_ACK_SHIFT)
         num_fopts = fctrl & FCTRL_FOPTSLEN_MASK
         logging.debug('packet has %d fopts' % num_fopts)
 
