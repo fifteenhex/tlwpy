@@ -116,9 +116,11 @@ class Data(Packet):
 
         # pull out the port and payload
         frmpayload = self.mac_payload[7 + num_fopts:]
-        if len(frmpayload) == 0:
+        if len(frmpayload) != 0:
+            self.port = struct.unpack('<B', frmpayload[0:1])[0]
+        else:
             logging.debug('packet has no payload')
-        self.port = struct.unpack('<B', frmpayload[0:1])[0]
+            self.port = 0
 
     def decrypt(self):
         pass
