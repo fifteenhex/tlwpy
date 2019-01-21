@@ -1,5 +1,6 @@
 import struct
 import logging
+from enum import IntEnum
 
 from tlwpy.liblorawan import decrypt_joinack, calculate_mic, calculate_sessionkeys
 
@@ -18,6 +19,15 @@ FCTRL_FOPTSLEN_MASK = 0b1111
 def get_packet_type(raw_packet: bytearray):
     mhdr = raw_packet[0]
     return (mhdr >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK
+
+
+class PacketType(IntEnum):
+    JOIN_REQ = 0b000,
+    JOIN_ACK = 0b001,
+    UNCONFIRMED_UP = 0b010,
+    UNCONFIRMED_DOWN = 0b011,
+    CONFIRMED_UP = 0b100,
+    CONFIRMED_DOWN = 0b101
 
 
 class Packet:

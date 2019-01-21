@@ -5,7 +5,7 @@ import tlwpy.liblorawan
 import tlwpy.pktfwdbr
 import base64
 import asyncio
-from tlwpy.lorawan import JoinAccept, SessionKeys
+from tlwpy.lorawan import PacketType, JoinAccept, SessionKeys
 
 PKTFWDBRROOT = 'pktfwdbr'
 RX_TYPE_JOIN = 'join'
@@ -65,10 +65,14 @@ class Gateway(MqttBase):
 
         return joinack.devaddr, session_keys.network_key, session_keys.app_key
 
-    async def send_uplink(self, ptype: int, dev_addr: int, framecounter: int, port: int, network_key: bytes,
-                          application_key: bytes, payload: bytes = None):
+    async def send_uplink(self, dev_addr: int, framecounter: int, port: int,
+                          network_key: bytes, application_key: bytes, confirmed=False, payload: bytes = None):
+
+        packet_type = PacketType.CONFIRMED_UP if confirmed else PacketType.UNCONFIRMED_UP
+
         topic = '%s/%s/rx/%s' % (PKTFWDBRROOT, self.__gateway_id, RX_TYPE_UNCONFIRMED)
-        data = tlwpy.liblorawan.build_data(ptype, dev_addr, framecounter, port, payload, network_key, application_key)
+        data = tlwpy.liblorawan.build_data(int(packet_type), dev_addr, framecounter, port, payload, network_key,
+                                           application_key)
         payload = self.__create_tx_json(data)
         await self.send_pktfwdbr_publish(topic, payload)
 
