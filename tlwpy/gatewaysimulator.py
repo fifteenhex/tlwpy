@@ -78,3 +78,32 @@ class Gateway(MqttBase):
 
     async def send_txack(self):
         pass
+
+
+class Node:
+    __slots__ = ['app_eui', 'dev_eui', 'key', '__gateway', '__dev_addr', '__frame_counter', '__network_key',
+                 '__app_key']
+
+    def __init__(self, gateway: Gateway, app_eui: str, dev_eui: str, key: str):
+        self.__gateway = gateway
+        self.__dev_addr = None
+        self.__frame_counter = 0
+        self.__network_key = None
+        self.__app_key = None
+        self.app_eui = app_eui
+        self.dev_eui = dev_eui
+        self.key = key
+
+    async def join(self):
+        dev_addr, network_key, app_key = await self.__gateway.join(self.app_eui, self.dev_eui, self.key)
+        assert 0 <= dev_addr <= 0xffffffff
+        assert len(network_key) is 16
+        assert len(app_key) is 16
+        self.__dev_addr = dev_addr
+        self.__network_key = network_key
+        self.__app_key = app_key
+
+    async def send_uplink(self, port: int, confirmed=False, payload: bytes = None):
+        await self.__gateway.send_uplink(self.__dev_addr, self.__frame_counter, port, self.__network_key,
+                                         self.__app_key, confirmed=confirmed, payload=payload)
+        self.__frame_counter += 1
