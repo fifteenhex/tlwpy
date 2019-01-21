@@ -13,8 +13,6 @@ MHDR_MTYPE_UNCNFDN = 0b011
 MHDR_MTYPE_CNFUP = 0b100
 MHDR_MTYPE_CNFDN = 0b101
 
-FCTRL_ADR_SHIFT = 7
-FCTRL_ACK_SHIFT = 5
 FCTRL_FOPTSLEN_MASK = 0b1111
 
 
@@ -104,12 +102,19 @@ class Data(Packet):
                  'framecounter',
                  'port',
                  'data',
-                 'mic']
+                 'mic',
+                 'fctrl',
+                 '__micced_part']
+
+    FCTRL_ADR_SHIFT = 7
+    FCTRL_ACK_SHIFT = 5
 
     def __init__(self, raw_packet: bytearray):
         super(Data, self).__init__(raw_packet)
 
-        mic = raw_packet[-4:]
+        self.__micced_part = raw_packet[:-4]
+
+        self.mic = raw_packet[-4:]
 
         # unpack the header and get the devaddr and framecounter
         fheader = self.mac_payload[0:7]
@@ -118,10 +123,10 @@ class Data(Packet):
         self.framecounter = unpacked_header[2]
 
         # parse fctrl byte
-        fctrl = unpacked_header[1]
-        self.adr = bool(fctrl >> FCTRL_ADR_SHIFT)
-        self.ack = bool(fctrl >> FCTRL_ACK_SHIFT)
-        num_fopts = fctrl & FCTRL_FOPTSLEN_MASK
+        self.fctrl = unpacked_header[1]
+        self.adr = bool(self.fctrl >> self.FCTRL_ADR_SHIFT)
+        self.ack = bool(self.fctrl >> self.FCTRL_ACK_SHIFT)
+        num_fopts = self.fctrl & FCTRL_FOPTSLEN_MASK
         logging.debug('packet has %d fopts' % num_fopts)
 
         # pull out the port and payload
@@ -131,6 +136,9 @@ class Data(Packet):
         else:
             logging.debug('packet has no payload')
             self.port = 0
+
+    def verify_mic(self, key: bytes):
+        return calculate_mic(key, self.__micced_part) == self.mic
 
     def decrypt(self):
         pass
@@ -143,6 +151,10 @@ class Uplink(Data):
 
 
 class Downlink(Data):
+    __slots__ = ['fpending']
+
+    FCTRL_FPENDING_SHIFT = 4
 
     def __init__(self, raw_packet: bytearray):
         super(Downlink, self).__init__(raw_packet)
+        self.fpending = bool(self.fctrl >> self.FCTRL_FPENDING_SHIFT)

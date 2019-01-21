@@ -5,7 +5,8 @@ import tlwpy.liblorawan
 import tlwpy.pktfwdbr
 import base64
 import asyncio
-from tlwpy.lorawan import PacketType, JoinAccept, SessionKeys
+from tlwpy.lorawan import PacketType, JoinAccept, SessionKeys, Downlink
+import logging
 
 PKTFWDBRROOT = 'pktfwdbr'
 RX_TYPE_JOIN = 'join'
@@ -82,7 +83,7 @@ class Gateway(MqttBase):
 
 class Node:
     __slots__ = ['app_eui', 'dev_eui', 'key', '__gateway', '__dev_addr', '__frame_counter', '__network_key',
-                 '__app_key']
+                 '__app_key', 'downlinks']
 
     def __init__(self, gateway: Gateway, app_eui: str, dev_eui: str, key: str):
         self.__gateway = gateway
@@ -93,6 +94,7 @@ class Node:
         self.app_eui = app_eui
         self.dev_eui = dev_eui
         self.key = key
+        self.downlinks = []
 
     async def join(self):
         dev_addr, network_key, app_key = await self.__gateway.join(self.app_eui, self.dev_eui, self.key)
@@ -107,3 +109,12 @@ class Node:
         await self.__gateway.send_uplink(self.__dev_addr, self.__frame_counter, port, self.__network_key,
                                          self.__app_key, confirmed=confirmed, payload=payload)
         self.__frame_counter += 1
+
+    def process_downlink(self, downlink: Downlink):
+        if downlink.devaddr == self.__dev_addr:
+            # if downlink.verify_mic(self.__network_key):
+            self.downlinks.append(downlink)
+        # else:
+        #    logging.debug('downlink mic is incorrect')
+        else:
+            logging.debug('downlink is not for this node(%x), is for (%x)' % (self.__dev_addr, downlink.devaddr))
