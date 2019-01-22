@@ -40,17 +40,22 @@ class PacketForwarder(MqttBase):
         else:
             self.__logger.debug('saw an unknown downlink packet')
 
+    def __on_txack(self, client, userdata, msg: mqtt.MQTTMessage):
+        self.__logger.debug('saw a txack')
+
     def __init__(self, host: str, port: int = None):
         rx_topic = 'pktfwdbr/+/rx/#'
         tx_topic = 'pktfwdbr/+/tx/#'
+        txack_topic = 'pktfwdbr/+/txack/#'
         super().__init__(host, port=port, id=tlwpy.mqttbase.create_client_id('pktfwdbr'),
-                         topics=[rx_topic, tx_topic])
+                         topics=[rx_topic, tx_topic, txack_topic])
         self.joinacks = asyncio.Queue()
         self.uplinks = asyncio.Queue()
         self.downlinks = asyncio.Queue()
         self.__logger = logging.getLogger('pktfwdbr')
         self.mqtt_client.message_callback_add(rx_topic, self.__on_rx)
         self.mqtt_client.message_callback_add(tx_topic, self.__on_tx)
+        self.mqtt_client.message_callback_add(txack_topic, self.__on_txack)
 
     def reset(self):
         pass

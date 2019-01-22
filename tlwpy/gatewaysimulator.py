@@ -77,8 +77,10 @@ class Gateway(MqttBase):
         payload = self.__create_tx_json(data)
         await self.send_pktfwdbr_publish(topic, payload)
 
-    async def send_txack(self):
-        pass
+    async def send_txack(self, token):
+        topic = '%s/%s/txack/%s' % (PKTFWDBRROOT, self.__gateway_id, token)
+        payload = {}
+        await self.send_pktfwdbr_publish(topic, payload)
 
 
 class Node:
