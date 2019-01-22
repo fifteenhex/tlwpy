@@ -1,6 +1,12 @@
+dist: xenial
 language: python
 python:
-  - "3.7-dev"
+  - "3.7"
+
+addons:
+  apt:
+    packages:
+    - mosquitto
 
 install:
   - pip install -r requirements.txt
