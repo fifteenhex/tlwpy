@@ -40,7 +40,7 @@ class Gateway(MqttBase):
                    "codr": "4/5",
                    "lsnr": 12.0,
                    "rssi": -48,
-                   "size": 23,
+                   "size": len(data),
                    "data": base64.b64encode(data).decode('ascii')}
         return payload
 
