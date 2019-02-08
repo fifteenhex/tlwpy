@@ -56,6 +56,3 @@ class PacketForwarder(MqttBase):
         self.mqtt_client.message_callback_add(rx_topic, self.__on_rx)
         self.mqtt_client.message_callback_add(tx_topic, self.__on_tx)
         self.mqtt_client.message_callback_add(txack_topic, self.__on_txack)
-
-    def reset(self):
-        pass
