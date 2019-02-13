@@ -6,8 +6,8 @@ from asyncio import Future
 import asyncio
 import base64
 import logging
-import tlwpy.mqttbase
-from tlwpy.mqttbase import MqttBase
+import mqttbase
+from mqttbase import MqttBase
 from datetime import datetime
 
 ACTION_ADD = 'add'
@@ -146,7 +146,7 @@ class Tlwbe(MqttBase):
         self.__on_result(msg, self.__downlink_results)
 
     def __init__(self, host: str = 'localhost', port: int = None):
-        self.__id = tlwpy.mqttbase.create_client_id('tlwbe')
+        self.__id = mqttbase.create_client_id('tlwbe')
         super().__init__(host, port=port, id=self.__id,
                          topics=[TOPIC_CONTROL_RESULT, TOPIC_UPLINK_RESULT, TOPIC_DOWNLINK_RESULT])
         self.queue_joins = Queue()

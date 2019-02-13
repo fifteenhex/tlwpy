@@ -1,2 +1,3 @@
 paho-mqtt >= 1.4.0
 cython
+git+git://github.com/fifteenhex/mqttbase.git#egg=mqttbase

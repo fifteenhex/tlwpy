@@ -1,5 +1,5 @@
-import tlwpy.mqttbase
-from tlwpy.mqttbase import MqttBase
+import mqttbase
+from mqttbase import MqttBase
 import json
 import tlwpy.liblorawan
 import tlwpy.pktfwdbr
@@ -17,7 +17,7 @@ class Gateway(MqttBase):
     __slots__ = ['__gateway_id', '__pktfwdbr']
 
     def __init__(self, host: str = None, port: int = None, gateway_id: str = None):
-        super(Gateway, self).__init__(host, port, id=tlwpy.mqttbase.create_client_id("gwsim"))
+        super(Gateway, self).__init__(host, port, id=mqttbase.create_client_id("gwsim"))
         if gateway_id is not None:
             self.__gateway_id = gateway_id
         else:

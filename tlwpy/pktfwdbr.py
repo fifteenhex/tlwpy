@@ -4,8 +4,8 @@ import base64
 from tlwpy import lorawan
 import json
 import asyncio
-import tlwpy.mqttbase
-from tlwpy.mqttbase import MqttBase
+import mqttbase
+from mqttbase import MqttBase
 
 
 class PacketForwarder(MqttBase):
@@ -47,7 +47,7 @@ class PacketForwarder(MqttBase):
         rx_topic = 'pktfwdbr/+/rx/#'
         tx_topic = 'pktfwdbr/+/tx/#'
         txack_topic = 'pktfwdbr/+/txack/#'
-        super().__init__(host, port=port, id=tlwpy.mqttbase.create_client_id('pktfwdbr'),
+        super().__init__(host, port=port, id=mqttbase.create_client_id('pktfwdbr'),
                          topics=[rx_topic, tx_topic, txack_topic])
         self.joinacks = asyncio.Queue()
         self.uplinks = asyncio.Queue()

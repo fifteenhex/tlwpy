@@ -1,6 +1,6 @@
 import logging
-import tlwpy.mqttbase
-from tlwpy.mqttbase import MqttBase
+import mqttbase
+from mqttbase import MqttBase
 from asyncio import Queue
 import asyncio
 import json
@@ -28,7 +28,7 @@ class Gateway(MqttBase):
         self.__reboot_queue = Queue()
         self.gwid = gwid
         heartbeat_topic = '%s/%s/%s' % (TOPICROOT, gwid, HEARTBEAT)
-        super().__init__(host, id=tlwpy.mqttbase.create_client_id('gwctrl'), topics=[heartbeat_topic])
+        super().__init__(host, id=mqttbase.create_client_id('gwctrl'), topics=[heartbeat_topic])
         self.__logger = logging.getLogger('gwctrl')
         self.mqtt_client.message_callback_add(heartbeat_topic, self.__on_heartbeat)
 
